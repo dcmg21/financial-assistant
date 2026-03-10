@@ -144,6 +144,16 @@ ENV/
 env.bak/
 venv.bak/
 
+# Project-specific secrets
+gcp_credentials.json
+
+# Large binary model files (too big for git — recreate via notebooks + tar)
+*.pkl
+*.tar.gz
+
+# Large datasets (public — download separately)
+data_sources/bank-full.csv
+
 # Spyder project settings
 .spyderproject
 .spyproject

@@ -1,17 +1,17 @@
 """
 data_sources/sec_edgar.py
-Pulls Prologis financial data from SEC EDGAR API and saves it locally.
+Pulls Realty Income Corporation financial data from SEC EDGAR API and saves it locally.
 """
 
 import requests
 import json
 from pathlib import Path
 
-# Prologis's unique ID on SEC EDGAR
+# Realty Income Corporation's unique ID on SEC EDGAR
 CIK = "0000726728"   # Realty Income Corporation
 CACHE_FILE = Path("data_sources/realty_income_financials.json")
 
-# Prologis uses different tag names across years — try all of them
+# Realty Income uses different XBRL tag names across filing years — try all of them
 REVENUE_TAGS = [
     "Revenues",
     "RevenueFromContractWithCustomerExcludingAssessedTax",
@@ -28,7 +28,7 @@ NET_INCOME_TAGS = [
 
 
 def download_financials():
-    """Download Prologis financials from SEC and save to file."""
+    """Download Realty Income Corporation financials from SEC and save to file."""
     print("Downloading from SEC EDGAR...")
     url = f"https://data.sec.gov/api/xbrl/companyfacts/CIK{CIK}.json"
     headers = {"User-Agent": "FinancialAssistant user@example.com"}
