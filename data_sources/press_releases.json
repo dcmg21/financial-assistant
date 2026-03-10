@@ -1,0 +1,134 @@
+[
+  {
+    "id": 1,
+    "date": "2024-10-15",
+    "title": "Realty Income Acquires 94-Property Retail Portfolio Across Sunbelt Markets",
+    "category": "acquisition",
+    "metro_areas": ["Dallas", "Phoenix", "Atlanta"],
+    "summary": "Realty Income completed the acquisition of a 94-property net lease retail portfolio across key Sunbelt markets for approximately $1.2 billion, adding tenants including Dollar General, CVS, and Tractor Supply.",
+    "full_text": "Realty Income Corporation (NYSE: O) completed a strategic acquisition of a 94-property net lease retail portfolio spanning Dallas, Phoenix, and Atlanta for approximately $1.2 billion. Properties are 100% leased on long-term net leases with a weighted average remaining lease term of 9.4 years.",
+    "key_figures": { "deal_value_usd": 1200000000, "properties_count": 94, "occupancy_rate": 100.0, "avg_lease_term_years": 9.4 },
+    "tags": ["acquisition", "sunbelt", "retail", "net-lease"]
+  },
+  {
+    "id": 2,
+    "date": "2024-09-08",
+    "title": "Realty Income Reports Strong Q2 2024 Results; Raises Full-Year AFFO Guidance",
+    "category": "earnings",
+    "metro_areas": [],
+    "summary": "Realty Income reported Q2 2024 AFFO per share of $1.06, up 6% year-over-year. The company raised its full-year 2024 AFFO guidance to $4.17-$4.21 per diluted share.",
+    "full_text": "Realty Income Corporation reported Q2 2024 AFFO of $1.06 per diluted share, a 6% increase year-over-year. Total revenues reached $1.34 billion. Portfolio occupancy was 98.8%.",
+    "key_figures": { "affo_per_share": 1.06, "yoy_growth_pct": 6.0, "quarterly_revenue": 1340000000, "occupancy_rate": 98.8 },
+    "tags": ["earnings", "Q2-2024", "guidance", "AFFO"]
+  },
+  {
+    "id": 3,
+    "date": "2024-08-20",
+    "title": "Realty Income Expands European Portfolio with $950M UK Retail Acquisition",
+    "category": "expansion",
+    "metro_areas": [],
+    "summary": "Realty Income announced the acquisition of 68 freestanding retail properties across the United Kingdom for $950 million, furthering its international diversification strategy.",
+    "full_text": "Realty Income acquired 68 freestanding net lease retail properties in the UK for $950 million. Properties are 100% occupied with an average remaining lease term of 11.2 years, leased to Sainsbury's, B&Q, and Halfords.",
+    "key_figures": { "deal_value_usd": 950000000, "properties_count": 68, "occupancy_rate": 100.0, "avg_lease_term_years": 11.2 },
+    "tags": ["expansion", "international", "UK", "retail"]
+  },
+  {
+    "id": 4,
+    "date": "2024-07-11",
+    "title": "Realty Income Declares 668th Consecutive Monthly Dividend",
+    "category": "dividend",
+    "metro_areas": [],
+    "summary": "Realty Income declared its 668th consecutive monthly dividend of $0.2635 per share, maintaining its status as The Monthly Dividend Company and S&P 500 Dividend Aristocrat.",
+    "full_text": "Realty Income declared a monthly cash dividend of $0.2635 per share, its 668th consecutive monthly dividend and 124th dividend increase since listing on the NYSE in 1994.",
+    "key_figures": { "monthly_dividend_per_share": 0.2635, "annualized_dividend": 3.162, "consecutive_monthly_dividends": 668 },
+    "tags": ["dividend", "monthly-dividend", "S&P-500-aristocrat"]
+  },
+  {
+    "id": 5,
+    "date": "2024-06-03",
+    "title": "Realty Income Closes $1.5B Sale-Leaseback of Encore Boston Harbor Casino",
+    "category": "acquisition",
+    "metro_areas": ["New York"],
+    "summary": "Realty Income completed a $1.5 billion sale-leaseback for Encore Boston Harbor, expanding its gaming and entertainment property segment.",
+    "full_text": "Realty Income completed a sale-leaseback of Encore Boston Harbor for $1.5 billion with initial annual rent of $100 million and 1.5% annual escalators. Gaming now represents approximately 4% of annualized contractual rent.",
+    "key_figures": { "deal_value_usd": 1500000000, "annual_rent_usd": 100000000, "annual_escalator_pct": 1.5, "gaming_pct_of_rent": 4.0 },
+    "tags": ["acquisition", "gaming", "sale-leaseback", "Boston"]
+  },
+  {
+    "id": 6,
+    "date": "2024-05-14",
+    "title": "Realty Income Appoints New Chief Investment Officer",
+    "category": "leadership",
+    "metro_areas": [],
+    "summary": "Realty Income named a new Chief Investment Officer effective August 1, 2024, bringing 18 years of net lease investment experience.",
+    "full_text": "Realty Income appointed a new CIO effective August 1, 2024, with 18 years of net lease real estate investment experience to lead its global acquisition strategy.",
+    "key_figures": {},
+    "tags": ["leadership", "executive", "CIO", "appointment"]
+  },
+  {
+    "id": 7,
+    "date": "2024-04-22",
+    "title": "Realty Income Q1 2024 Earnings: Revenue Up 27% Year-Over-Year",
+    "category": "earnings",
+    "metro_areas": [],
+    "summary": "Realty Income reported Q1 2024 revenues of $1.26 billion, a 27% increase versus Q1 2023, driven by the Spirit Realty merger.",
+    "full_text": "Realty Income reported Q1 2024 revenues of $1.26 billion, up 27% year-over-year. AFFO was $1.03 per diluted share. Portfolio occupancy was 98.6%. The company invested $598 million in 156 properties during the quarter.",
+    "key_figures": { "quarterly_revenue": 1260000000, "yoy_revenue_growth_pct": 27.0, "affo_per_share": 1.03, "occupancy_rate": 98.6 },
+    "tags": ["earnings", "Q1-2024", "revenue-growth", "Spirit-Realty"]
+  },
+  {
+    "id": 8,
+    "date": "2024-03-05",
+    "title": "Realty Income Completes $9.3B Merger with Spirit Realty Capital",
+    "category": "acquisition",
+    "metro_areas": ["Dallas", "Chicago", "Atlanta"],
+    "summary": "Realty Income completed its all-stock merger with Spirit Realty Capital, adding approximately 2,000 net lease properties and expanding its portfolio to over 15,000 properties.",
+    "full_text": "Realty Income completed its $9.3 billion merger with Spirit Realty Capital, adding 2,000 properties and generating $50 million in annual cost synergies. Total portfolio now exceeds 15,000 properties.",
+    "key_figures": { "deal_value_usd": 9300000000, "properties_added": 2000, "total_portfolio_properties": 15000, "annual_synergies_usd": 50000000 },
+    "tags": ["acquisition", "merger", "Spirit-Realty", "net-lease"]
+  },
+  {
+    "id": 9,
+    "date": "2024-02-21",
+    "title": "Realty Income Reports Record Full-Year 2023 Revenue of $3.9 Billion",
+    "category": "earnings",
+    "metro_areas": [],
+    "summary": "Realty Income reported record full-year 2023 revenues of $3.9 billion, up 22% versus 2022, with AFFO of $3.92 per diluted share.",
+    "full_text": "Realty Income reported record 2023 revenues of $3.9 billion, up 22% year-over-year. AFFO was $3.92 per diluted share. Year-end occupancy was 98.8% across 13,458 properties in 49 states and 7 countries.",
+    "key_figures": { "annual_revenue": 3900000000, "yoy_revenue_growth_pct": 22.0, "affo_per_share": 3.92, "occupancy_rate": 98.8, "total_properties": 13458 },
+    "tags": ["earnings", "annual-results", "2023", "record-revenue"]
+  },
+  {
+    "id": 10,
+    "date": "2024-01-18",
+    "title": "Realty Income Issues $1B in Senior Unsecured Notes at 5.125%",
+    "category": "financial",
+    "metro_areas": [],
+    "summary": "Realty Income priced $1 billion of senior unsecured notes due 2034 at 5.125%, with proceeds used to repay debt and fund future acquisitions.",
+    "full_text": "Realty Income priced $1.0 billion of 5.125% senior unsecured notes due 2034. Proceeds repay revolving credit facility borrowings and fund future acquisitions. Realty Income holds an A3/A- credit rating.",
+    "key_figures": { "notes_value_usd": 1000000000, "coupon_rate_pct": 5.125, "maturity_year": 2034, "credit_rating_moodys": "A3", "credit_rating_sp": "A-" },
+    "tags": ["financial", "debt-offering", "notes", "capital-markets"]
+  },
+  {
+    "id": 11,
+    "date": "2023-11-09",
+    "title": "Realty Income Enters Data Center Sector with $950M Sale-Leaseback",
+    "category": "expansion",
+    "metro_areas": ["Chicago", "Dallas", "Atlanta"],
+    "summary": "Realty Income entered the data center sector through a $950 million sale-leaseback of seven hyperscale facilities, diversifying beyond traditional retail net lease.",
+    "full_text": "Realty Income completed a $950 million sale-leaseback of seven hyperscale data center facilities in Chicago, Dallas, and Atlanta on 20-year triple-net leases with fixed annual escalators.",
+    "key_figures": { "deal_value_usd": 950000000, "properties_count": 7, "lease_term_years": 20, "occupancy_rate": 100.0 },
+    "tags": ["expansion", "data-center", "diversification", "sale-leaseback"]
+  },
+  {
+    "id": 12,
+    "date": "2023-09-27",
+    "title": "Realty Income Targets Net Zero Emissions by 2050 with New ESG Roadmap",
+    "category": "sustainability",
+    "metro_areas": [],
+    "summary": "Realty Income committed to net zero greenhouse gas emissions by 2050, with near-term goals to reduce Scope 1 and 2 emissions 50% by 2030.",
+    "full_text": "Realty Income published its ESG roadmap targeting net zero emissions by 2050, a 50% reduction in Scope 1 and 2 emissions by 2030, solar installations at 500 properties by 2026, and ENERGY STAR certification for 20% of eligible properties by 2025.",
+    "key_figures": { "net_zero_target_year": 2050, "emissions_reduction_target_pct": 50, "solar_properties_target": 500 },
+    "tags": ["sustainability", "ESG", "net-zero", "solar"]
+  }
+]
