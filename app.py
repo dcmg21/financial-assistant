@@ -123,10 +123,11 @@ st.set_page_config(
 # ── Global CSS ─────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-/* Remove excessive whitespace at the top of the page */
-.block-container {
-    padding-top: 1.5rem !important;
-}
+/* Hide Streamlit's header bar — it's what causes the whitespace above tabs */
+header[data-testid="stHeader"] { height: 0; min-height: 0; }
+
+/* Pull content up to top now that header is gone */
+.block-container { padding-top: 1rem !important; }
 
 /* Larger, bolder tab labels */
 .stTabs [data-baseweb="tab"] {
@@ -137,12 +138,9 @@ st.markdown("""
 
 /* Sidebar text size */
 [data-testid="stSidebar"] .stMarkdown p,
-[data-testid="stSidebar"] li {
-    font-size: 14px;
-}
+[data-testid="stSidebar"] li { font-size: 14px; }
 
-/* Normalize text size inside chat messages — prevent AI markdown headers
-   from rendering as large h1/h2/h3 and breaking the chat layout */
+/* Keep chat text consistent — stop AI markdown headers from rendering huge */
 [data-testid="stChatMessage"] h1,
 [data-testid="stChatMessage"] h2,
 [data-testid="stChatMessage"] h3,
@@ -151,15 +149,8 @@ st.markdown("""
     font-weight: 600 !important;
     margin: 0.25rem 0 !important;
 }
-[data-testid="stChatMessage"] p {
-    font-size: 0.95rem;
-    line-height: 1.6;
-    margin: 0.2rem 0;
-}
-[data-testid="stChatMessage"] li {
-    font-size: 0.95rem;
-    line-height: 1.6;
-}
+[data-testid="stChatMessage"] p,
+[data-testid="stChatMessage"] li { font-size: 0.95rem; line-height: 1.6; }
 </style>
 """, unsafe_allow_html=True)
 
