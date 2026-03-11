@@ -1,11 +1,6 @@
-"""
-chatbot/tools.py
-Tool functions for the Vertex AI ADK agent.
-Each tool maps to one of the three data sources:
-  - SEC EDGAR financials
-  - Supabase property/financials database
-  - Press releases
-"""
+# chatbot/tools.py
+# Tool functions registered with the Vertex AI agent.
+# Each one pulls from a different data source — SEC, database, or press releases.
 
 import sys
 import os
@@ -16,20 +11,13 @@ from data_sources.press_release_client import search, get_recent
 from database.db_client import get_properties as db_get_properties, get_property_financials as db_get_property_financials
 
 
-# ── SEC EDGAR TOOLS ────────────────────────────────────────────────────────────
+# SEC EDGAR tools
 
 def get_annual_financials(year: int = None) -> str:
     """
-    Retrieves Realty Income Corporation annual financial data from SEC EDGAR.
-    Use this tool when the user asks about revenue, net income, earnings,
-    or financial performance for a specific year or the most recent year.
-
-    Args:
-        year: The fiscal year to retrieve (e.g. 2023). If not provided,
-              returns the most recent year available.
-
-    Returns:
-        A formatted string with revenue and net income figures.
+    Get Realty Income annual revenue and net income from SEC EDGAR.
+    Use for questions about earnings, revenue, or financial performance.
+    Defaults to most recent year if no year is given.
     """
     data = get_financials(year=year)
     if not data:
@@ -50,14 +38,7 @@ def get_annual_financials(year: int = None) -> str:
 
 
 def get_financial_summary() -> str:
-    """
-    Returns a multi-year summary of Realty Income Corporation financials.
-    Use this when the user asks about financial trends, growth, or wants
-    a historical overview of the company's performance.
-
-    Returns:
-        A formatted multi-year summary of revenue and net income.
-    """
+    """Multi-year revenue and net income summary. Good for trend questions."""
     import json
     from pathlib import Path
 
@@ -80,23 +61,14 @@ def get_financial_summary() -> str:
     return "\n".join(lines)
 
 
-# ── PRESS RELEASE TOOLS ────────────────────────────────────────────────────────
+# Press release tools
 
 def search_press_releases(keyword: str = None, category: str = None,
                           metro: str = None) -> str:
     """
-    Searches Realty Income press releases by keyword, category, or metro area.
-    Use this tool when the user asks about company news, announcements,
-    acquisitions, expansions, or recent business updates.
-
-    Args:
-        keyword:  A word or phrase to search for (e.g. "acquisition", "dividend")
-        category: Filter by category — options: acquisition, earnings, dividend,
-                  expansion, partnership
-        metro:    Filter by metro area (e.g. "Chicago", "New York", "Dallas")
-
-    Returns:
-        A formatted list of matching press releases.
+    Search press releases by keyword, category, or metro area.
+    Use for questions about news, acquisitions, dividends, or announcements.
+    Categories: acquisition, earnings, dividend, expansion, partnership
     """
     results = search(keyword=keyword, category=category, metro=metro, limit=5)
     if not results:
@@ -115,14 +87,7 @@ def search_press_releases(keyword: str = None, category: str = None,
 
 
 def get_recent_news() -> str:
-    """
-    Returns the 3 most recent Realty Income press releases.
-    Use this when the user asks what's new, recent announcements,
-    or latest company news.
-
-    Returns:
-        A formatted list of the most recent press releases.
-    """
+    """Returns the 3 most recent press releases. Use for 'what's new' questions."""
     results = get_recent(limit=3)
     if not results:
         return "No recent press releases found."
@@ -136,20 +101,12 @@ def get_recent_news() -> str:
     return "\n".join(lines)
 
 
-# ── DATABASE / PROPERTY TOOLS ──────────────────────────────────────────────────
+# Database / property tools
 
 def get_properties(metro_area: str = None, property_type: str = None) -> str:
     """
-    Retrieves property records from the Realty Income property database.
-    Use this when the user asks about properties, locations, square footage,
-    or wants to filter properties by region or type.
-
-    Args:
-        metro_area:    Filter by metro area (e.g. "Chicago", "Dallas", "Atlanta")
-        property_type: Filter by type (e.g. "retail", "industrial", "office")
-
-    Returns:
-        A formatted list of matching properties.
+    Pull properties from the Supabase database.
+    Filter by metro area (e.g. Chicago, Dallas) or type (retail, industrial, office).
     """
     try:
         properties = db_get_properties(metro_area=metro_area, property_type=property_type)
@@ -173,18 +130,7 @@ def get_properties(metro_area: str = None, property_type: str = None) -> str:
 
 
 def get_property_financials(property_id: int = None, metro_area: str = None) -> str:
-    """
-    Retrieves financial data for properties from the database.
-    Use this when the user asks about property revenue, net income,
-    expenses, or financial performance at the property level.
-
-    Args:
-        property_id: Specific property ID to look up
-        metro_area:  Filter financials by metro area
-
-    Returns:
-        A formatted summary of property-level financials.
-    """
+    """Revenue, expenses, and net income at the property level."""
     try:
         records = db_get_property_financials(property_id=property_id)
 

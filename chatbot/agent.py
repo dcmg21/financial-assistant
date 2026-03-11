@@ -1,11 +1,5 @@
-"""
-chatbot/agent.py
-Vertex AI ADK agent for the Financial Assistant.
-Routes natural language questions to the correct data source tool.
-
-Usage:
-    python agent.py
-"""
+# chatbot/agent.py
+# Vertex AI ADK agent — Gemini 2.5 Flash with 6 tools for SEC data, properties, and press releases
 
 import os
 import asyncio
@@ -26,10 +20,8 @@ from tools import (
 
 load_dotenv()
 
-# ── Set Gemini API key ─────────────────────────────────────────────────────────
 os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY", "")
 
-# ── Build Agent ────────────────────────────────────────────────────────────────
 SYSTEM_INSTRUCTION = """
 You are a Financial Assistant for Realty Income Corporation (ticker: O),
 a real estate investment trust (REIT) that owns and leases commercial properties.
@@ -76,7 +68,6 @@ agent = Agent(
     ],
 )
 
-# ── Session + Runner ───────────────────────────────────────────────────────────
 APP_NAME        = "financial_assistant"
 USER_ID         = "user"
 session_service = InMemorySessionService()
@@ -87,9 +78,7 @@ runner          = Runner(
 )
 
 
-# ── Async core ─────────────────────────────────────────────────────────────────
 async def _chat_async(user_message: str, session_id: str) -> str:
-    """Async implementation of chat — handles session creation and event loop."""
 
     # Create session if it doesn't exist
     try:
@@ -122,21 +111,10 @@ async def _chat_async(user_message: str, session_id: str) -> str:
 
 
 def chat(user_message: str, session_id: str = "default") -> str:
-    """
-    Send a message to the agent and return its response.
-    Called by the Streamlit app.
-
-    Args:
-        user_message: The user's natural language question
-        session_id:   Session ID to maintain conversation history
-
-    Returns:
-        The agent's response as a string
-    """
+    """Called by app.py — wraps the async runner so Streamlit can use it."""
     return asyncio.run(_chat_async(user_message, session_id))
 
 
-# ── Local test ─────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     print("Financial Assistant — Vertex AI ADK")
     print("=" * 60)

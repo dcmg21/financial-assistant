@@ -445,6 +445,8 @@ with tab_housing:
                 result = reg_predict(features)
                 result["source"] = "Local Model"
             except Exception as e:
+                if sagemaker_err:
+                    st.error(f"SageMaker error: {sagemaker_err}")
                 st.error(f"Prediction error: {e}")
 
         if result:
@@ -527,6 +529,8 @@ with tab_bank:
                 result = clf_predict(features)
                 result["source"] = "Local Model"
             except Exception as e:
+                if sagemaker_err:
+                    st.error(f"SageMaker error: {sagemaker_err}")
                 st.error(f"Prediction error: {e}")
 
         if result:

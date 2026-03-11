@@ -1,8 +1,6 @@
-"""
-chatbot/bedrock_client.py
-AWS Bedrock integration for summarization and fallback support.
-Uses Amazon Nova Micro via AWS Bedrock — satisfies the multi-cloud requirement.
-"""
+# chatbot/bedrock_client.py
+# AWS Bedrock (Nova Micro) — used for financial summaries and as a chat fallback
+# when Vertex AI is unavailable
 
 import boto3
 import json
@@ -11,7 +9,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ── Bedrock client ─────────────────────────────────────────────────────────────
 bedrock = boto3.client(
     service_name="bedrock-runtime",
     region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"),
@@ -23,7 +20,7 @@ MODEL_ID = "amazon.nova-micro-v1:0"
 
 
 def _invoke(prompt: str, max_tokens: int = 500) -> str:
-    """Internal helper — calls Amazon Nova Micro and returns the response string."""
+    """Sends a prompt to Nova Micro and returns the response text."""
     body = json.dumps({
         "messages": [{"role": "user", "content": [{"text": prompt}]}],
         "inferenceConfig": {"maxTokens": max_tokens, "temperature": 0.3}
@@ -34,17 +31,7 @@ def _invoke(prompt: str, max_tokens: int = 500) -> str:
 
 
 def summarize(text: str, context: str = "financial data") -> str:
-    """
-    Summarize a block of text using Amazon Titan via AWS Bedrock.
-    Used to provide concise summaries of financial data or press releases.
-
-    Args:
-        text:    The text to summarize
-        context: What type of content is being summarized
-
-    Returns:
-        A concise summary string
-    """
+    """Summarizes a block of financial text. Used in the Financials tab."""
     prompt = f"""Summarize the following {context} in 2-3 clear, concise sentences
 for a financial analyst audience. Focus on the most important insights.
 
@@ -55,17 +42,7 @@ Summary:"""
 
 
 def fallback_answer(question: str, context: str) -> str:
-    """
-    Fallback response generator using Bedrock when the primary
-    Vertex AI agent is unavailable or hits quota limits.
-
-    Args:
-        question: The user's original question
-        context:  Any relevant data already retrieved
-
-    Returns:
-        A natural language answer based on the context
-    """
+    """Chat fallback when Vertex AI is down or hits quota limits."""
     prompt = f"""You are a knowledgeable financial assistant for Realty Income Corporation (ticker: O),
 a real estate investment trust (REIT) that owns and leases commercial properties across the U.S. and Europe.
 
@@ -81,7 +58,6 @@ Answer:"""
     return _invoke(prompt, max_tokens=500)
 
 
-# ── Local test ─────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     sample = """
     Realty Income Corporation Fiscal Year 2025:
