@@ -17,11 +17,15 @@ ENCODERS_PATH  = os.path.join(BASE_DIR, "artifacts", "lr_bank_marketing_encoders
 FEATURES_PATH  = os.path.join(BASE_DIR, "artifacts", "lr_bank_marketing_features.pkl")
 
 
-# ── Load artifacts once at startup ────────────────────────────────────────────
-model          = joblib.load(MODEL_PATH)
-scaler         = joblib.load(SCALER_PATH)
-label_encoders = joblib.load(ENCODERS_PATH)
-feature_cols   = joblib.load(FEATURES_PATH)
+# ── Load artifacts once at startup (local only) ────────────────────────────────
+# In SageMaker, model_fn() handles loading from /opt/ml/model/ instead
+try:
+    model          = joblib.load(MODEL_PATH)
+    scaler         = joblib.load(SCALER_PATH)
+    label_encoders = joblib.load(ENCODERS_PATH)
+    feature_cols   = joblib.load(FEATURES_PATH)
+except FileNotFoundError:
+    model = scaler = label_encoders = feature_cols = None
 
 
 def predict(features: dict) -> dict:

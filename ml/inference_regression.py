@@ -20,9 +20,14 @@ FEATURES = [
 ]
 
 
-# ── Load artifacts once at startup ────────────────────────────────────────────
-model  = joblib.load(MODEL_PATH)
-scaler = joblib.load(SCALER_PATH)
+# ── Load artifacts once at startup (local only) ────────────────────────────────
+# In SageMaker, model_fn() handles loading from /opt/ml/model/ instead
+try:
+    model  = joblib.load(MODEL_PATH)
+    scaler = joblib.load(SCALER_PATH)
+except FileNotFoundError:
+    model  = None
+    scaler = None
 
 
 def predict(features: dict) -> dict:
