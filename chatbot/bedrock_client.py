@@ -66,13 +66,15 @@ def fallback_answer(question: str, context: str) -> str:
     Returns:
         A natural language answer based on the context
     """
-    prompt = f"""You are a financial assistant for Realty Income Corporation (ticker: O).
-Answer the following question using only the provided context data.
-Be concise and professional.
+    prompt = f"""You are a knowledgeable financial assistant for Realty Income Corporation (ticker: O),
+a real estate investment trust (REIT) that owns and leases commercial properties across the U.S. and Europe.
+
+Answer the following question in a clear, professional, and helpful way.
+Use the provided context data if relevant, and supplement with your general knowledge about Realty Income.
 
 Question: {question}
 
-Context:
+Context (recent financial data):
 {context}
 
 Answer:"""

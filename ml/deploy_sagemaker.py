@@ -19,9 +19,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ── CONFIG — fill these in ─────────────────────────────────────────────────────
-S3_BUCKET    = "your-s3-bucket-name"          # e.g. "financial-assistant-models"
+S3_BUCKET    = "financial-assistant-models"
 REGION       = "us-east-1"                    # match your SageMaker region
-ROLE_ARN     = "arn:aws:iam::YOUR_ACCOUNT_ID:role/SageMakerExecutionRole"
+ROLE_ARN     = "arn:aws:iam::864795784776:role/SageMakerExecutionRole"
 
 # SageMaker uses this container for sklearn models
 SKLEARN_IMAGE = f"683313688378.dkr.ecr.{REGION}.amazonaws.com/sagemaker-scikit-learn:1.2-1-cpu-py3"
@@ -66,9 +66,15 @@ def deploy_model(model_name: str, s3_uri: str, endpoint_name: str):
             "Image":        SKLEARN_IMAGE,
             "ModelDataUrl": s3_uri,
             "Environment":  {
-                "SAGEMAKER_PROGRAM":  "inference_regression.py"
-                if "regression" in model_name else "inference_classification.py",
-                "SAGEMAKER_SUBMIT_DIRECTORY": s3_uri
+                # Tell SageMaker which script to use as the serving entry point.
+                # The script is already bundled inside the model.tar.gz at its root,
+                # so SAGEMAKER_SUBMIT_DIRECTORY is NOT set — when it points to the
+                # same S3 URI as the model data it causes a pip-install conflict.
+                "SAGEMAKER_PROGRAM": (
+                    "inference_regression.py"
+                    if "regression" in model_name
+                    else "inference_classification.py"
+                ),
             }
         },
         ExecutionRoleArn=ROLE_ARN

@@ -150,6 +150,17 @@ header[data-testid="stHeader"] { height: 0; min-height: 0; }
 }
 [data-testid="stChatMessage"] p,
 [data-testid="stChatMessage"] li { font-size: 0.95rem; line-height: 1.6; }
+
+/* Normalize inline code inside alert/success boxes — AI responses sometimes wrap
+   numbers in backticks which renders as monospace code font inside the green box */
+[data-testid="stAlert"] code,
+[data-testid="stAlert"] pre {
+    font-family: inherit !important;
+    font-size: inherit !important;
+    background: transparent !important;
+    padding: 0 !important;
+    border: none !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -420,11 +431,12 @@ with tab_housing:
             "income_per_room":  income_per_room,
         }
         result = None
+        sagemaker_err = None
         # Try SageMaker endpoint first
         try:
             result = sagemaker_predict_regression(features)
-        except Exception:
-            pass
+        except Exception as e:
+            sagemaker_err = str(e)
 
         # Fall back to local model if SageMaker unavailable
         if result is None:
@@ -437,8 +449,14 @@ with tab_housing:
 
         if result:
             st.divider()
-            source_badge = "☁️ AWS SageMaker" if result["source"] == "SageMaker" else "💻 Local Model"
-            st.caption(f"Prediction source: **{source_badge}**")
+            if result["source"] == "SageMaker":
+                source_badge = "☁️ AWS SageMaker"
+                st.caption(f"Prediction source: {source_badge}")
+            else:
+                st.caption("Prediction source: 💻 Local Model (SageMaker fallback)")
+                if sagemaker_err:
+                    with st.expander("ℹ️ Why Local Model? (SageMaker error details)"):
+                        st.code(sagemaker_err, language=None)
             r1, r2 = st.columns(2)
             r1.metric("Predicted Value (raw)", f"{result['predicted_value']:.4f}")
             r2.metric("Predicted Median House Value", f"${result['predicted_value_usd']:,.2f}")
@@ -495,11 +513,12 @@ with tab_bank:
             "campaign": campaign, "pdays": pdays, "previous": previous, "poutcome": poutcome,
         }
         result = None
+        sagemaker_err = None
         # Try SageMaker endpoint first
         try:
             result = sagemaker_predict_classification(features)
-        except Exception:
-            pass
+        except Exception as e:
+            sagemaker_err = str(e)
 
         # Fall back to local model if SageMaker unavailable
         if result is None:
@@ -512,8 +531,14 @@ with tab_bank:
 
         if result:
             st.divider()
-            source_badge = "☁️ AWS SageMaker" if result["source"] == "SageMaker" else "💻 Local Model"
-            st.caption(f"Prediction source: **{source_badge}**")
+            if result["source"] == "SageMaker":
+                source_badge = "☁️ AWS SageMaker"
+                st.caption(f"Prediction source: {source_badge}")
+            else:
+                st.caption("Prediction source: 💻 Local Model (SageMaker fallback)")
+                if sagemaker_err:
+                    with st.expander("ℹ️ Why Local Model? (SageMaker error details)"):
+                        st.code(sagemaker_err, language=None)
 
             label    = result["prediction_label"].upper()
             prob_yes = result["probability_yes"]
@@ -539,7 +564,7 @@ with tab_bank:
             ))
             fig_prob.update_layout(
                 title="Subscription Probability",
-                yaxis=dict(range=[0, 1], tickformat=".0%"),
+                yaxis=dict(range=[0, 1.15], tickformat=".0%"),
                 height=300,
                 margin=dict(l=40, r=20, t=40, b=40)
             )
