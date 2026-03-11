@@ -17,7 +17,7 @@ setup(
     version="1.0.0",
     install_requires=[
         "numpy>=2.0",
-        "scikit-learn>=1.4",
+        "scikit-learn>=1.6",  # model was trained with 1.8.0 — get as close as possible to match pkl compatibility
         "pandas>=2.0",
     ],
     py_modules=["inference"],

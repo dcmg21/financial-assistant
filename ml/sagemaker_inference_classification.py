@@ -10,10 +10,13 @@ import os
 
 
 def model_fn(model_dir):
-    return {
-        "model":  joblib.load(os.path.join(model_dir, "lr_bank_marketing.pkl")),
-        "scaler": joblib.load(os.path.join(model_dir, "lr_bank_marketing_scaler.pkl")),
-    }
+    model  = joblib.load(os.path.join(model_dir, "lr_bank_marketing.pkl"))
+    scaler = joblib.load(os.path.join(model_dir, "lr_bank_marketing_scaler.pkl"))
+    # the container runs sklearn 1.2 which expects multi_class on the object,
+    # but models trained with sklearn 1.5+ no longer store it — patch it back in
+    if not hasattr(model, "multi_class"):
+        model.multi_class = "auto"
+    return {"model": model, "scaler": scaler}
 
 
 def predict_fn(input_data, model_artifacts):
