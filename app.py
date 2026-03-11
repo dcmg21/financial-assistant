@@ -18,6 +18,9 @@ from pathlib import Path
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import boto3
+import joblib
+import numpy as np
 
 # ── Path setup ─────────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -28,6 +31,88 @@ sys.path.insert(0, os.path.join(BASE_DIR, "ml"))
 from dotenv import load_dotenv
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 
+# ── SageMaker client ───────────────────────────────────────────────────────────
+REGION                   = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
+REGRESSION_ENDPOINT      = "housing-regression-endpoint"
+CLASSIFICATION_ENDPOINT  = "bank-classification-endpoint"
+REGRESSION_FEATURES      = [
+    "MedInc", "HouseAge", "AveOccup", "Latitude", "Longitude",
+    "Population", "rooms_per_person", "bedrooms_ratio", "income_per_room"
+]
+
+sagemaker_runtime = boto3.client(
+    "sagemaker-runtime",
+    region_name=REGION,
+    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+)
+
+
+def sagemaker_predict_regression(features: dict) -> dict:
+    """
+    Call the SageMaker regression endpoint.
+    Sends raw features as CSV; the endpoint scales and predicts internally.
+    Returns the same dict shape as inference_regression.predict().
+    """
+    payload = ",".join(str(features[f]) for f in REGRESSION_FEATURES)
+    response = sagemaker_runtime.invoke_endpoint(
+        EndpointName=REGRESSION_ENDPOINT,
+        ContentType="text/csv",
+        Body=payload,
+    )
+    raw = response["Body"].read().decode().strip().strip("[]")
+    prediction = float(raw)
+    return {
+        "predicted_value":     round(prediction, 4),
+        "predicted_value_usd": round(prediction * 100_000, 2),
+        "source": "SageMaker",
+    }
+
+
+def sagemaker_predict_classification(features: dict) -> dict:
+    """
+    Call the SageMaker classification endpoint.
+    Encodes categoricals locally (same encoders used during training),
+    then sends the numeric array to the endpoint.
+    Returns the same dict shape as inference_classification.predict().
+    """
+    encoders_path    = os.path.join(BASE_DIR, "ml", "artifacts", "lr_bank_marketing_encoders.pkl")
+    feature_col_path = os.path.join(BASE_DIR, "ml", "artifacts", "lr_bank_marketing_features.pkl")
+    label_encoders   = joblib.load(encoders_path)
+    feature_cols     = joblib.load(feature_col_path)
+
+    # Encode categorical fields using saved LabelEncoders
+    encoded = {}
+    for col, val in features.items():
+        if col in label_encoders:
+            encoded[col] = int(label_encoders[col].transform([val])[0])
+        else:
+            encoded[col] = val
+
+    payload = ",".join(str(encoded[f]) for f in feature_cols)
+    response = sagemaker_runtime.invoke_endpoint(
+        EndpointName=CLASSIFICATION_ENDPOINT,
+        ContentType="text/csv",
+        Body=payload,
+    )
+    raw = response["Body"].read().decode().strip()
+
+    # Response is a serialized numpy array — parse prediction and probability
+    # Format varies by SageMaker sklearn version; handle both array and scalar
+    values = [v.strip().strip("[]") for v in raw.replace("\n", ",").split(",") if v.strip().strip("[]")]
+    prediction = int(float(values[0]))
+    # Probabilities follow if the endpoint serializes predict_proba output
+    prob_yes = float(values[1]) if len(values) > 1 else (0.9 if prediction == 1 else 0.1)
+    prob_no  = float(values[2]) if len(values) > 2 else (1 - prob_yes)
+
+    return {
+        "prediction":       prediction,
+        "prediction_label": "yes" if prediction == 1 else "no",
+        "probability_yes":  round(prob_yes, 4),
+        "probability_no":   round(prob_no, 4),
+        "source": "SageMaker",
+    }
+
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Realty Income Financial Assistant",
@@ -35,13 +120,34 @@ st.set_page_config(
     layout="wide",
 )
 
+# ── Global CSS ─────────────────────────────────────────────────────────────────
+st.markdown("""
+<style>
+/* Larger, bolder tab labels */
+.stTabs [data-baseweb="tab"] {
+    font-size: 16px;
+    font-weight: 600;
+    padding: 10px 24px;
+}
+/* Sidebar text size */
+[data-testid="stSidebar"] .stMarkdown p,
+[data-testid="stSidebar"] li {
+    font-size: 14px;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # ── Sidebar ────────────────────────────────────────────────────────────────────
-st.sidebar.image(
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Realty_Income_logo.svg/320px-Realty_Income_logo.svg.png",
-    use_container_width=True,
-)
-st.sidebar.title("Financial Assistant")
-st.sidebar.caption("Realty Income Corporation (NYSE: O)")
+logo_path = os.path.join(BASE_DIR, "assets", "logo.png")
+if os.path.exists(logo_path):
+    st.sidebar.image(logo_path, use_container_width=True)
+else:
+    st.sidebar.markdown("""
+<div style="text-align:center; padding: 16px 0 8px 0;">
+    <div style="font-size:30px; font-weight:800; color:#1F497D; letter-spacing:1px;">Realty Income</div>
+    <div style="font-size:13px; color:#888; margin-top:4px; font-weight:500;">NYSE: O &nbsp;|&nbsp; Financial Assistant</div>
+</div>
+""", unsafe_allow_html=True)
 st.sidebar.divider()
 st.sidebar.markdown(
     "**Data Sources**\n"
@@ -297,11 +403,26 @@ with tab_housing:
             "bedrooms_ratio":   bedrooms_ratio,
             "income_per_room":  income_per_room,
         }
+        result = None
+        # Try SageMaker endpoint first
         try:
-            sys.path.insert(0, os.path.join(BASE_DIR, "ml"))
-            from inference_regression import predict as reg_predict
-            result = reg_predict(features)
+            result = sagemaker_predict_regression(features)
+        except Exception:
+            pass
+
+        # Fall back to local model if SageMaker unavailable
+        if result is None:
+            try:
+                from inference_regression import predict as reg_predict
+                result = reg_predict(features)
+                result["source"] = "Local Model"
+            except Exception as e:
+                st.error(f"Prediction error: {e}")
+
+        if result:
             st.divider()
+            source_badge = "☁️ AWS SageMaker" if result["source"] == "SageMaker" else "💻 Local Model"
+            st.caption(f"Prediction source: **{source_badge}**")
             r1, r2 = st.columns(2)
             r1.metric("Predicted Value (raw)", f"{result['predicted_value']:.4f}")
             r2.metric("Predicted Median House Value", f"${result['predicted_value_usd']:,.2f}")
@@ -309,8 +430,6 @@ with tab_housing:
                 f"✅ This block's predicted median house value is **${result['predicted_value_usd']:,.2f}**",
                 icon="🏠"
             )
-        except Exception as e:
-            st.error(f"Prediction error: {e}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -359,12 +478,28 @@ with tab_bank:
             "contact": contact, "day": day, "month": month, "duration": duration,
             "campaign": campaign, "pdays": pdays, "previous": previous, "poutcome": poutcome,
         }
+        result = None
+        # Try SageMaker endpoint first
         try:
-            from inference_classification import predict as clf_predict
-            result = clf_predict(features)
-            st.divider()
+            result = sagemaker_predict_classification(features)
+        except Exception:
+            pass
 
-            label = result["prediction_label"].upper()
+        # Fall back to local model if SageMaker unavailable
+        if result is None:
+            try:
+                from inference_classification import predict as clf_predict
+                result = clf_predict(features)
+                result["source"] = "Local Model"
+            except Exception as e:
+                st.error(f"Prediction error: {e}")
+
+        if result:
+            st.divider()
+            source_badge = "☁️ AWS SageMaker" if result["source"] == "SageMaker" else "💻 Local Model"
+            st.caption(f"Prediction source: **{source_badge}**")
+
+            label    = result["prediction_label"].upper()
             prob_yes = result["probability_yes"]
             prob_no  = result["probability_no"]
 
@@ -393,6 +528,3 @@ with tab_bank:
                 margin=dict(l=40, r=20, t=40, b=40)
             )
             st.plotly_chart(fig_prob, use_container_width=True)
-
-        except Exception as e:
-            st.error(f"Prediction error: {e}")
