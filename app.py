@@ -123,16 +123,42 @@ st.set_page_config(
 # ── Global CSS ─────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
+/* Remove excessive whitespace at the top of the page */
+.block-container {
+    padding-top: 1.5rem !important;
+}
+
 /* Larger, bolder tab labels */
 .stTabs [data-baseweb="tab"] {
     font-size: 16px;
     font-weight: 600;
     padding: 10px 24px;
 }
+
 /* Sidebar text size */
 [data-testid="stSidebar"] .stMarkdown p,
 [data-testid="stSidebar"] li {
     font-size: 14px;
+}
+
+/* Normalize text size inside chat messages — prevent AI markdown headers
+   from rendering as large h1/h2/h3 and breaking the chat layout */
+[data-testid="stChatMessage"] h1,
+[data-testid="stChatMessage"] h2,
+[data-testid="stChatMessage"] h3,
+[data-testid="stChatMessage"] h4 {
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    margin: 0.25rem 0 !important;
+}
+[data-testid="stChatMessage"] p {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0.2rem 0;
+}
+[data-testid="stChatMessage"] li {
+    font-size: 0.95rem;
+    line-height: 1.6;
 }
 </style>
 """, unsafe_allow_html=True)
