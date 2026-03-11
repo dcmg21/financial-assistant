@@ -20,7 +20,6 @@ import pandas as pd
 import plotly.graph_objects as go
 import boto3
 import joblib
-import numpy as np
 
 # ── Path setup ─────────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -129,16 +128,16 @@ header[data-testid="stHeader"] { height: 0; min-height: 0; }
 /* Pull content up to top now that header is gone */
 .block-container { padding-top: 1rem !important; }
 
-/* Larger, bolder tab labels */
+/* Tab labels */
 .stTabs [data-baseweb="tab"] {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 600;
-    padding: 10px 24px;
+    padding: 10px 28px;
 }
 
 /* Sidebar text size */
 [data-testid="stSidebar"] .stMarkdown p,
-[data-testid="stSidebar"] li { font-size: 14px; }
+[data-testid="stSidebar"] li { font-size: 16px; }
 
 /* Keep chat text consistent — stop AI markdown headers from rendering huge */
 [data-testid="stChatMessage"] h1,
