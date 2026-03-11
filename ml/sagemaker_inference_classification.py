@@ -23,4 +23,5 @@ def predict_fn(input_data, model_artifacts):
     x_scaled = model_artifacts["scaler"].transform(x)
     pred  = int(model_artifacts["model"].predict(x_scaled)[0])
     proba = model_artifacts["model"].predict_proba(x_scaled)[0]
-    return [pred, round(float(proba[1]), 4), round(float(proba[0]), 4)]
+    # return as numpy array so SageMaker's container can serialize it
+    return np.array([pred, round(float(proba[1]), 4), round(float(proba[0]), 4)])
