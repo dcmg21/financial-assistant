@@ -1,10 +1,15 @@
 # chatbot/tools.py
-# Tool functions registered with the Vertex AI agent.
-# Each one pulls from a different data source — SEC, database, or press releases.
+# The six tools registered with the Vertex AI ADK agent.
+# Each function connects to a different data source — SEC EDGAR, the Supabase
+# database, or the press releases file. The agent decides which one to call
+# based on what the user asked.
 
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Make sure imports work regardless of where the app is launched from
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(BASE_DIR)
 
 from data_sources.sec_edgar import get_financials
 from data_sources.press_release_client import search, get_recent
@@ -42,7 +47,8 @@ def get_financial_summary() -> str:
     import json
     from pathlib import Path
 
-    cache = Path("data_sources/realty_income_financials.json")
+    # Use an absolute path so this works no matter what the working directory is
+    cache = Path(BASE_DIR) / "data_sources" / "realty_income_financials.json"
     if not cache.exists():
         return "Financial data not available. Please run sec_edgar.py first."
 

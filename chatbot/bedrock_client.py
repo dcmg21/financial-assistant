@@ -1,6 +1,7 @@
 # chatbot/bedrock_client.py
-# AWS Bedrock (Nova Micro) — used for financial summaries and as a chat fallback
-# when Vertex AI is unavailable
+# Handles all AWS Bedrock calls. Nova Micro is used in two places:
+# the "Generate financial summary" button in the Financials tab, and as a
+# fallback chat responder if Vertex AI goes down or hits a quota limit.
 
 import boto3
 import json
@@ -20,7 +21,7 @@ MODEL_ID = "amazon.nova-micro-v1:0"
 
 
 def _invoke(prompt: str, max_tokens: int = 500) -> str:
-    """Sends a prompt to Nova Micro and returns the response text."""
+    """Internal helper — sends a prompt to Nova Micro and returns the text response."""
     body = json.dumps({
         "messages": [{"role": "user", "content": [{"text": prompt}]}],
         "inferenceConfig": {"maxTokens": max_tokens, "temperature": 0.3}
@@ -31,7 +32,7 @@ def _invoke(prompt: str, max_tokens: int = 500) -> str:
 
 
 def summarize(text: str, context: str = "financial data") -> str:
-    """Summarizes a block of financial text. Used in the Financials tab."""
+    """Generates a 2-3 sentence summary of a block of financial text. Called by the Financials tab."""
     prompt = f"""Summarize the following {context} in 2-3 clear, concise sentences
 for a financial analyst audience. Focus on the most important insights.
 
@@ -42,7 +43,7 @@ Summary:"""
 
 
 def fallback_answer(question: str, context: str) -> str:
-    """Chat fallback when Vertex AI is down or hits quota limits."""
+    """Answers a chat question using Bedrock when Vertex AI isn't available. Passes recent SEC data as context."""
     prompt = f"""You are a knowledgeable financial assistant for Realty Income Corporation (ticker: O),
 a real estate investment trust (REIT) that owns and leases commercial properties across the U.S. and Europe.
 

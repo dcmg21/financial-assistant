@@ -1,11 +1,10 @@
-# Financial Assistant Web Application
-**Realty Income Corporation (NYSE: O)**
+# Financial Assistant — Realty Income Corporation (NYSE: O)
 
-A full-stack AI-powered financial assistant that combines SEC EDGAR data, a PostgreSQL property database, press releases, machine learning predictions, and a generative AI chatbot into a single Streamlit web application.
+A full-stack, multi-cloud financial assistant built with Streamlit. It pulls real SEC EDGAR data, connects to a PostgreSQL property database, runs two live ML models on AWS SageMaker, and uses Google Vertex AI (Gemini) to answer natural language questions — all in one app.
 
 ---
 
-## Architecture Overview
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -34,21 +33,23 @@ A full-stack AI-powered financial assistant that combines SEC EDGAR data, a Post
 
 ---
 
-## Data Flow
+## How each tab works
 
-1. **Chat** — User asks a natural language question. The Vertex AI ADK agent (Gemini 2.5 Flash) determines which tool to call, fetches from SEC EDGAR, Supabase, or press releases, and returns a natural language answer. If Gemini is unavailable, AWS Bedrock (Nova Micro) answers using recent SEC data as context.
+**Chat** — You type a question in plain English. The Vertex AI ADK agent (Gemini 2.5 Flash) figures out which tool to call, fetches the data, and writes a natural language response. If Gemini is unavailable for any reason, it automatically falls back to AWS Bedrock (Nova Micro) using recent SEC data as context.
 
-2. **Financials** — The SEC EDGAR XBRL API is queried on first run and cached locally as `realty_income_financials.json`. The dashboard reads from this cache and displays KPI cards, bar charts, and a trend line. The AI Summary button calls AWS Bedrock to generate a 2-3 sentence narrative.
+**Financials** — Pulls Realty Income's actual 10-K filings from the SEC EDGAR XBRL API, caches them locally, and displays KPI cards, bar charts, and a trend line. The "Generate financial summary" button sends the data to AWS Bedrock and gets back a 2-3 sentence summary.
 
-3. **ML Predictions** — User fills in a feature form. The app calls the live AWS SageMaker endpoint and displays the prediction with a source badge showing "AWS SageMaker" or "Local Model" (fallback if the endpoint is unavailable).
+**Housing Predictor** — You fill in a few housing characteristics, hit Predict, and the app sends the data to the `housing-regression-endpoint` on SageMaker. If the endpoint is down, it falls back to the local `.pkl` file and shows a badge so you can tell which one ran.
+
+**Bank Predictor** — Same pattern, but for the bank subscription classification model on `bank-classification-endpoint`. Returns a yes/no prediction with probability scores and a bar chart.
 
 ---
 
-## Chatbot Query Routing
+## Chatbot query routing
 
-The Vertex AI ADK agent uses six tools to route queries:
+The Vertex AI agent has six tools and routes questions automatically:
 
-| User Question | Tool Called |
+| Question | Tool |
 |---|---|
 | "What was net income last year?" | `get_annual_financials(year=None)` |
 | "Show revenue over 5 years" | `get_financial_summary()` |
@@ -57,49 +58,50 @@ The Vertex AI ADK agent uses six tools to route queries:
 | "Show properties in Chicago" | `get_properties(metro_area="Chicago")` |
 | "Revenue for Chicago properties?" | `get_property_financials()` |
 
-The agent's system instruction defines routing rules explicitly. If a question spans multiple topics, the agent calls multiple tools and combines the results.
+If a question spans multiple topics, the agent calls multiple tools and combines the results into one answer.
 
 ---
 
-## Setup Instructions
+## Local setup
 
-### Prerequisites
+### What you need first
 - Python 3.13
-- AWS account with Bedrock and SageMaker access
-- Google Cloud account with Vertex AI API enabled
-- Supabase account with the schema from `database/schema.sql`
+- An AWS account with Bedrock and SageMaker access
+- A Google Cloud account with Vertex AI API enabled
+- A Supabase project (free tier works fine)
 
-### Local Setup
+### Running it locally
 
 ```bash
-# 1. Clone the repository
+# Clone the repo
 git clone <your-repo-url>
 cd financial-assistant
 
-# 2. Create and activate virtual environment
+# Create and activate a virtual environment
 python -m venv venv
 venv\Scripts\activate        # Windows
 # source venv/bin/activate   # Mac/Linux
 
-# 3. Install dependencies
+# Install dependencies
 pip install -r requirements.txt
 
-# 4. Create .env file with your credentials (see section below)
-
-# 5. Run the app
+# Add your credentials (see the section below)
+# Then run the app
 streamlit run app.py
 ```
 
 The app opens at `http://localhost:8501`.
 
-### Environment Variables (.env)
+### Environment variables
+
+Create a `.env` file in the project root with the following. Never commit this file — it's already in `.gitignore`.
 
 ```
 # Supabase PostgreSQL
-POSTGRES_HOST=db.<your-project>.supabase.co
+POSTGRES_HOST=aws-0-us-east-1.pooler.supabase.com
 POSTGRES_PORT=5432
 POSTGRES_DB=postgres
-POSTGRES_USER=postgres
+POSTGRES_USER=postgres.<your-project-ref>
 POSTGRES_PASSWORD=<your-password>
 
 # AWS
@@ -114,108 +116,105 @@ GOOGLE_CLOUD_LOCATION=us-central1
 GOOGLE_APPLICATION_CREDENTIALS=gcp_credentials.json
 ```
 
-### Database Setup
+> **Note on Supabase:** Use the Session Pooler connection values (not the direct connection). The direct connection is IPv6-only and won't work on most cloud hosting platforms. Find the pooler host and username in your Supabase dashboard under **Connect → Session pooler**.
 
-Run `database/schema.sql` in the Supabase SQL Editor to create the `properties` and `financials` tables and insert 20 sample property records across Chicago, Dallas, Atlanta, New York, Los Angeles, and other metro areas.
+### Database setup
 
----
-
-## Machine Learning Models
-
-### Regression — Housing Price Prediction
-
-**Dataset:** California Housing (scikit-learn built-in, 20,640 samples)
-**Model:** Random Forest Regressor (n_estimators=100)
-**Notebook:** `ml/notebooks/01_regression.ipynb`
-
-Training steps:
-1. Load dataset, perform EDA (shape, describe, correlation heatmap)
-2. Engineer 3 derived features: `rooms_per_person`, `bedrooms_ratio`, `income_per_room`
-3. Apply StandardScaler to all 9 features
-4. 80/20 train/test split (random_state=42)
-5. Train Random Forest Regressor
-6. Evaluate: RMSE, MAE, R²
-7. Save artifacts to `ml/artifacts/`
-
-**Inference script:** `ml/inference_regression.py`
-- `predict(features: dict)` returns `predicted_value` and `predicted_value_usd`
-- Contains `model_fn` / `predict_fn` handlers for SageMaker
-
-**SageMaker Deployment:**
-- Packaged: `ml/model_regression.tar.gz`
-- S3 path: `s3://financial-assistant-models/models/regression/`
-- Container: `683313688378.dkr.ecr.us-east-1.amazonaws.com/sagemaker-scikit-learn:1.2-1-cpu-py3`
-- Endpoint: `housing-regression-endpoint` (ml.t2.medium)
+Open the Supabase SQL Editor and run `database/schema.sql`. This creates the `properties` and `financials` tables and seeds them with 25 sample properties across Chicago, Dallas, Atlanta, New York, Los Angeles, and other metro areas.
 
 ---
 
-### Classification — Bank Term Deposit Prediction
+## Machine learning models
 
-**Dataset:** UCI Bank Marketing (`data_sources/bank-full.csv`, 45,211 rows)
-**Model:** Logistic Regression (max_iter=1000)
-**Notebook:** `ml/notebooks/02_classification.ipynb`
+### Regression — Housing price prediction
 
-Training steps:
-1. Load semicolon-delimited CSV, inspect class distribution
-2. Apply LabelEncoder to all 9 categorical columns, save encoders
-3. Apply StandardScaler to all numeric features
-4. Stratified 80/20 train/test split
-5. Train Logistic Regression classifier
-6. Evaluate: Accuracy, Precision, Recall, F1, Confusion Matrix
-7. Save all artifacts to `ml/artifacts/`
+- **Dataset:** California Housing (scikit-learn built-in, 20,640 samples)
+- **Model:** Random Forest Regressor (n_estimators=100)
+- **Notebook:** `ml/notebooks/01_regression.ipynb`
 
-**Inference script:** `ml/inference_classification.py`
-- `predict(features: dict)` returns `prediction_label` (yes/no), `probability_yes`, `probability_no`
-- Contains `model_fn` / `predict_fn` handlers for SageMaker
+Training steps: load dataset → EDA → engineer 3 derived features (`rooms_per_person`, `bedrooms_ratio`, `income_per_room`) → StandardScaler → 80/20 train/test split → train → evaluate with RMSE, MAE, R² → save artifacts to `ml/artifacts/`.
 
-**SageMaker Deployment:**
-- Packaged: `ml/model_classification.tar.gz`
-- S3 path: `s3://financial-assistant-models/models/classification/`
-- Container: same scikit-learn image as regression
-- Endpoint: `bank-classification-endpoint` (ml.t2.medium)
+- **SageMaker endpoint:** `housing-regression-endpoint` (ml.t2.medium)
+- **S3 path:** `s3://financial-assistant-models/models/regression/`
+- **Container:** `sagemaker-scikit-learn:1.2-1-cpu-py3`
+
+### Classification — Bank term deposit prediction
+
+- **Dataset:** UCI Bank Marketing (`data_sources/bank-full.csv`, 45,211 rows)
+- **Model:** Logistic Regression (max_iter=1000)
+- **Notebook:** `ml/notebooks/02_classification.ipynb`
+
+Training steps: load semicolon-delimited CSV → inspect class balance → LabelEncode all 9 categorical columns → StandardScaler → stratified 80/20 split → train → evaluate with Accuracy, Precision, Recall, F1, Confusion Matrix → save all artifacts to `ml/artifacts/`.
+
+- **SageMaker endpoint:** `bank-classification-endpoint` (ml.t2.medium)
+- **S3 path:** `s3://financial-assistant-models/models/classification/`
+- **Container:** same scikit-learn image as regression
+
+### Deploying (or redeploying) the models
+
+```bash
+# 1. Package model artifacts and inference code into tarballs
+python ml/create_tarballs.py
+
+# 2. Run cleanup in AWS CloudShell (removes old endpoints and S3 files)
+python ml/cloudshell_cleanup.py
+
+# 3. Upload tarballs to S3 (run from AWS CloudShell or locally with AWS CLI)
+aws s3 cp ml/s3_upload/regression/model_regression.tar.gz s3://financial-assistant-models/models/regression/
+aws s3 cp ml/s3_upload/regression/sourcedir.tar.gz s3://financial-assistant-models/models/regression/
+aws s3 cp ml/s3_upload/classification/model_classification.tar.gz s3://financial-assistant-models/models/classification/
+aws s3 cp ml/s3_upload/classification/sourcedir.tar.gz s3://financial-assistant-models/models/classification/
+
+# 4. Deploy endpoints (run from AWS CloudShell)
+python ml/cloudshell_deploy.py
+```
 
 ---
 
-## Cloud Services
+## Cloud services
 
-| Service | Purpose |
+| Service | What it does |
 |---|---|
-| Google Vertex AI (Gemini 2.5 Flash) | Primary chatbot — natural language routing |
-| AWS SageMaker | Hosts regression and classification endpoints |
-| AWS Bedrock (Amazon Nova Micro) | Summarization and chatbot fallback |
-| Supabase (PostgreSQL) | Property and financial records |
-| SEC EDGAR XBRL API | Annual financials for Realty Income Corporation |
+| Google Vertex AI (Gemini 2.5 Flash) | Primary chatbot — natural language question routing |
+| AWS SageMaker | Hosts the regression and classification endpoints |
+| AWS Bedrock (Amazon Nova Micro) | Financial summarization + chatbot fallback |
+| Supabase (PostgreSQL) | Property and financial records database |
+| SEC EDGAR XBRL API | Real annual financials for Realty Income Corporation |
 
 ---
 
-## Project Structure
+## Project structure
 
 ```
 financial-assistant/
-├── app.py                             # Main Streamlit application
-├── requirements.txt                   # Python dependencies
-├── .streamlit/config.toml             # Theme configuration
-├── assets/logo.png                    # Company logo
+├── app.py                             # Main Streamlit app
+├── requirements.txt
+├── .streamlit/config.toml             # Theme settings
+├── assets/logo.png
 ├── chatbot/
-│   ├── agent.py                       # Vertex AI ADK agent
-│   ├── tools.py                       # 6 data source tool functions
-│   ├── bedrock_client.py              # AWS Bedrock client
+│   ├── agent.py                       # Vertex AI ADK agent (Gemini 2.5 Flash)
+│   ├── tools.py                       # Six tool functions the agent can call
+│   ├── bedrock_client.py              # AWS Bedrock client (summarize + fallback)
 │   └── __init__.py
 ├── data_sources/
-│   ├── sec_edgar.py                   # SEC EDGAR API client
+│   ├── sec_edgar.py                   # Fetches and caches SEC EDGAR financials
 │   ├── realty_income_financials.json  # Cached financial data
-│   ├── press_release_client.py        # Press release search
-│   └── press_releases.json            # Mock press release data
+│   ├── press_release_client.py        # Search helper for press releases
+│   └── press_releases.json            # Press release dataset
 ├── database/
-│   ├── db_client.py                   # Supabase psycopg2 connection
+│   ├── db_client.py                   # psycopg2 connection to Supabase
 │   └── schema.sql                     # Table definitions + seed data
 └── ml/
     ├── notebooks/
-    │   ├── 01_regression.ipynb        # Random Forest training
-    │   └── 02_classification.ipynb    # Logistic Regression training
-    ├── inference_regression.py        # Regression inference script
-    ├── inference_classification.py    # Classification inference script
-    ├── deploy_sagemaker.py            # SageMaker deployment reference
+    │   ├── 01_regression.ipynb        # Random Forest training notebook
+    │   └── 02_classification.ipynb    # Logistic Regression training notebook
+    ├── inference_regression.py        # Local fallback inference (regression)
+    ├── inference_classification.py    # Local fallback inference (classification)
+    ├── sagemaker_inference_regression.py     # Inference code for SageMaker container
+    ├── sagemaker_inference_classification.py # Inference code for SageMaker container
+    ├── create_tarballs.py             # Packages models for S3 upload
+    ├── cloudshell_deploy.py           # Creates SageMaker endpoints (run in CloudShell)
+    ├── cloudshell_cleanup.py          # Tears down all SageMaker resources
     └── artifacts/
         ├── rf_housing.pkl
         ├── rf_housing_scaler.pkl

@@ -1,12 +1,13 @@
 """
 data_sources/press_release_client.py
-Search and retrieve press releases from the JSON file.
+Search and retrieve press releases from the local JSON file.
 """
 
 import json
 from pathlib import Path
 
-FILE = Path("data_sources/press_releases.json")
+# Absolute path so this works regardless of where the app is launched from
+FILE = Path(__file__).parent / "press_releases.json"
 
 
 def load_all():

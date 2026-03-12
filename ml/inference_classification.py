@@ -1,6 +1,6 @@
 # ml/inference_classification.py
-# Local fallback for the bank subscription predictor.
-# app.py imports this when SageMaker is unavailable.
+# Local fallback for the bank subscription predictor. app.py tries the SageMaker
+# endpoint first — if that fails for any reason, it calls predict() here instead.
 
 import joblib
 import numpy as np
@@ -13,7 +13,7 @@ ENCODERS_PATH  = os.path.join(BASE_DIR, "artifacts", "lr_bank_marketing_encoders
 FEATURES_PATH  = os.path.join(BASE_DIR, "artifacts", "lr_bank_marketing_features.pkl")
 
 
-# load at startup so the first prediction isn't slow
+# Load everything at import time so the first prediction call isn't slow
 try:
     model          = joblib.load(MODEL_PATH)
     scaler         = joblib.load(SCALER_PATH)
@@ -25,8 +25,8 @@ except Exception:
 
 def predict(features: dict) -> dict:
     """Takes raw customer features (strings for categoricals) and returns
-    a yes/no prediction with probabilities."""
-    # Encode categorical fields using saved label encoders
+    a yes/no subscription prediction with probability scores."""
+    # Encode categorical columns using the same LabelEncoders saved during training
     encoded = {}
     for col, val in features.items():
         if col in label_encoders:
@@ -48,7 +48,8 @@ def predict(features: dict) -> dict:
     }
 
 
-# SageMaker handler stubs — not used in production (see sagemaker_inference_classification.py)
+# These SageMaker handler stubs are not used by the app — the real SageMaker
+# inference code lives in sagemaker_inference_classification.py inside the container.
 def model_fn(model_dir):
     return {
         "model":          joblib.load(os.path.join(model_dir, "lr_bank_marketing.pkl")),

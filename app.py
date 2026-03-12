@@ -1,12 +1,12 @@
 """
 app.py
-Streamlit web application for the Realty Income Financial Assistant.
+Main entry point for the Realty Income Financial Assistant.
 
-Tabs:
-  1. 💬 Chat        — Vertex AI ADK chatbot with Bedrock fallback
-  2. 📊 Financials  — SEC EDGAR data with charts
-  3. 🏠 Housing     — Random Forest regression predictor
-  4. 🏦 Bank        — Logistic Regression subscription predictor
+Four tabs:
+  1. 💬 Chat        — Vertex AI (Gemini) chatbot with AWS Bedrock as fallback
+  2. 📊 Financials  — Real SEC EDGAR data with KPI cards and charts
+  3. 🏠 Housing     — Random Forest regression model hosted on SageMaker
+  4. 🏦 Bank        — Logistic Regression classifier hosted on SageMaker
 """
 
 import sys
@@ -201,13 +201,13 @@ with tab_chat:
     st.header("💬 Financial Assistant Chat")
     st.caption("Ask questions about Realty Income — financials, properties, news, and more.")
 
-    # Session ID persists per browser session
+    # Each browser tab gets its own session ID so conversations stay separate
     if "session_id" not in st.session_state:
         st.session_state.session_id = str(uuid.uuid4())
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # Render chat history
+    # Render the full conversation history
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"].replace("$", r"\$"))
@@ -229,7 +229,7 @@ with tab_chat:
                 st.session_state.pending_question = ex
                 st.rerun()
 
-    # Handle example button click
+    # Example buttons store the question in session state and rerun — pick it up here
     if "pending_question" in st.session_state:
         prompt = st.session_state.pop("pending_question")
     else:
@@ -246,24 +246,22 @@ with tab_chat:
                 response = ""
                 used_fallback = False
 
-                # Try Vertex AI agent first
+                # Try Vertex AI first
                 try:
                     from agent import chat as agent_chat
                     response = agent_chat(prompt, session_id=st.session_state.session_id)
                     if not response or "could not generate" in response.lower():
                         raise ValueError("Empty or default response from Vertex AI")
                 except Exception as primary_err:
-                    # Fallback to AWS Bedrock
+                    # Vertex AI failed — switch to AWS Bedrock with recent SEC data as context
                     used_fallback = True
                     try:
                         from bedrock_client import fallback_answer
-                        # Pull some context from SEC data
                         fin_path = Path(BASE_DIR) / "data_sources" / "realty_income_financials.json"
                         context = ""
                         if fin_path.exists():
                             with open(fin_path) as f:
                                 data = json.load(f)
-                            # Most recent 2 years as context
                             recent = sorted(data.keys(), reverse=True)[:2]
                             for yr in recent:
                                 d = data[yr]
@@ -300,7 +298,7 @@ with tab_fin:
         with open(fin_path) as f:
             fin_data = json.load(f)
 
-        # Build DataFrame
+        # Convert the JSON dict to a DataFrame for display
         rows = []
         for yr, d in fin_data.items():
             rows.append({
@@ -310,7 +308,7 @@ with tab_fin:
             })
         df = pd.DataFrame(rows).sort_values("Year", ascending=False).reset_index(drop=True)
 
-        # KPI cards — most recent year
+        # Top KPI cards showing the most recent year at a glance
         latest = df.iloc[0]
         k1, k2, k3 = st.columns(3)
         k1.metric("📅 Most Recent Year", int(latest["Year"]))
@@ -319,7 +317,7 @@ with tab_fin:
 
         st.divider()
 
-        # Charts
+        # Bar charts side by side, then a combined trend line below
         df_chart = df.sort_values("Year")
         col1, col2 = st.columns(2)
 
@@ -343,7 +341,7 @@ with tab_fin:
                                   height=350, margin=dict(l=40, r=20, t=40, b=40))
             st.plotly_chart(fig_inc, use_container_width=True)
 
-        # Trend line chart
+        # Combined trend line for revenue and net income over time
         fig_trend = go.Figure()
         fig_trend.add_trace(go.Scatter(
             x=df_chart["Year"], y=df_chart["Revenue ($M)"],
@@ -362,7 +360,7 @@ with tab_fin:
         with st.expander("📋 Raw Data Table"):
             st.dataframe(df, use_container_width=True, hide_index=True)
 
-        # Bedrock AI summary
+        # AI summary powered by AWS Bedrock — generates a 2-3 sentence narrative
         st.divider()
         st.subheader("🤖 AI Summary (AWS Bedrock)")
         if st.button("Generate financial summary", key="gen_summary"):
@@ -432,13 +430,13 @@ with tab_housing:
         }
         result = None
         sagemaker_err = None
-        # Try SageMaker endpoint first
+        # Hit the live SageMaker endpoint first
         try:
             result = sagemaker_predict_regression(features)
         except Exception as e:
             sagemaker_err = str(e)
 
-        # Fall back to local model if SageMaker unavailable
+        # If SageMaker failed, run the prediction locally using the pkl files
         if result is None:
             try:
                 from inference_regression import predict as reg_predict
@@ -516,13 +514,13 @@ with tab_bank:
         }
         result = None
         sagemaker_err = None
-        # Try SageMaker endpoint first
+        # Hit the live SageMaker endpoint first
         try:
             result = sagemaker_predict_classification(features)
         except Exception as e:
             sagemaker_err = str(e)
 
-        # Fall back to local model if SageMaker unavailable
+        # If SageMaker failed, run the prediction locally using the pkl files
         if result is None:
             try:
                 from inference_classification import predict as clf_predict
@@ -558,7 +556,7 @@ with tab_bank:
             else:
                 st.warning(f"❌ This customer is **UNLIKELY TO SUBSCRIBE** to a term deposit ({prob_no:.1%} confidence)", icon="⚠️")
 
-            # Probability bar chart
+            # Visual breakdown of the yes/no probabilities
             fig_prob = go.Figure(go.Bar(
                 x=["Subscribe (Yes)", "Not Subscribe (No)"],
                 y=[prob_yes, prob_no],

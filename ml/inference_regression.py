@@ -1,6 +1,6 @@
 # ml/inference_regression.py
-# Local fallback for the housing price predictor.
-# app.py imports this when SageMaker is unavailable.
+# Local fallback for the housing price predictor. app.py tries the SageMaker
+# endpoint first — if that fails for any reason, it calls predict() here instead.
 
 import joblib
 import numpy as np
@@ -10,14 +10,14 @@ BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH  = os.path.join(BASE_DIR, "artifacts", "rf_housing.pkl")
 SCALER_PATH = os.path.join(BASE_DIR, "artifacts", "rf_housing_scaler.pkl")
 
-# Feature order must match training
+# Feature order must exactly match what was used during training
 FEATURES = [
     "MedInc", "HouseAge", "AveOccup", "Latitude", "Longitude",
     "Population", "rooms_per_person", "bedrooms_ratio", "income_per_room"
 ]
 
 
-# load at startup so the first prediction isn't slow
+# Load the model and scaler at import time so the first prediction call isn't slow
 try:
     model  = joblib.load(MODEL_PATH)
     scaler = joblib.load(SCALER_PATH)
@@ -27,8 +27,8 @@ except Exception:
 
 
 def predict(features: dict) -> dict:
-    """Takes a dict of housing features and returns predicted value in dollars.
-    Feature keys must match the FEATURES list above."""
+    """Takes a dict of housing features and returns the predicted value in dollars.
+    Keys must match the FEATURES list above — same order used during training."""
     x = np.array([[features[f] for f in FEATURES]])
     x_scaled = scaler.transform(x)
     prediction = float(model.predict(x_scaled)[0])
@@ -39,7 +39,8 @@ def predict(features: dict) -> dict:
     }
 
 
-# SageMaker handler stubs — not used in production (see sagemaker_inference_regression.py)
+# These SageMaker handler stubs are not used by the app — the real SageMaker
+# inference code lives in sagemaker_inference_regression.py inside the container.
 def model_fn(model_dir):
     """Loads pkl files from the SageMaker model dir."""
     m  = joblib.load(os.path.join(model_dir, "rf_housing.pkl"))

@@ -1,5 +1,7 @@
 # chatbot/agent.py
-# Vertex AI ADK agent — Gemini 2.5 Flash with 6 tools for SEC data, properties, and press releases
+# Sets up the Vertex AI ADK agent using Gemini 2.5 Flash.
+# The agent gets six tools (defined in tools.py) and a system prompt that tells
+# it how to route questions to the right data source.
 
 import os
 import asyncio
@@ -80,7 +82,7 @@ runner          = Runner(
 
 async def _chat_async(user_message: str, session_id: str) -> str:
 
-    # Create session if it doesn't exist
+    # Check if a session already exists for this user; create one if not
     try:
         existing = await session_service.get_session(
             app_name=APP_NAME, user_id=USER_ID, session_id=session_id
@@ -101,17 +103,18 @@ async def _chat_async(user_message: str, session_id: str) -> str:
         session_id=session_id,
         new_message=content,
     ):
-        # Capture text from model events (skip tool call/result events)
+        # We only care about text parts — skip tool call and tool result events.
+        # Keep overwriting response_text so we end up with the final answer.
         if hasattr(event, 'content') and event.content and hasattr(event.content, 'parts'):
             for part in event.content.parts:
                 if hasattr(part, 'text') and part.text:
-                    response_text = part.text  # keep updating — last text wins
+                    response_text = part.text
 
     return response_text or "I could not generate a response. Please try again."
 
 
 def chat(user_message: str, session_id: str = "default") -> str:
-    """Called by app.py — wraps the async runner so Streamlit can use it."""
+    """Public entry point called by app.py. Wraps the async runner so Streamlit can call it synchronously."""
     return asyncio.run(_chat_async(user_message, session_id))
 
 
@@ -129,4 +132,4 @@ if __name__ == "__main__":
         response = chat(q, session_id="test")
         print(f"Agent: {response}")
         print("-" * 60)
-        time.sleep(15)  # stay within 5 RPM free tier limit
+        time.sleep(15)  # free tier is 5 RPM, so wait between test calls

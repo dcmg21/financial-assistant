@@ -1,17 +1,19 @@
 """
 data_sources/sec_edgar.py
-Pulls Realty Income Corporation financial data from SEC EDGAR API and saves it locally.
+Fetches Realty Income annual financials from the SEC EDGAR XBRL API and caches them
+locally as realty_income_financials.json. No API key needed — SEC data is public.
 """
 
 import requests
 import json
 from pathlib import Path
 
-# Realty Income Corporation's unique ID on SEC EDGAR
-CIK = "0000726728"   # Realty Income Corporation
-CACHE_FILE = Path("data_sources/realty_income_financials.json")
+# Realty Income's unique identifier in the SEC EDGAR system
+CIK = "0000726728"
+CACHE_FILE = Path(__file__).parent / "realty_income_financials.json"
 
-# Realty Income uses different XBRL tag names across filing years — try all of them
+# Realty Income has used different XBRL tag names across different filing years,
+# so we try each one in order and stop at the first that returns real data.
 REVENUE_TAGS = [
     "Revenues",
     "RevenueFromContractWithCustomerExcludingAssessedTax",
@@ -38,7 +40,7 @@ def download_financials():
 
     results = {}
 
-    # Try each revenue tag until we find one with real data
+    # Try each revenue tag until we find one that has actual data
     for tag in REVENUE_TAGS:
         entries = us_gaap.get(tag, {}).get("units", {}).get("USD", [])
         annual = [e for e in entries if e.get("form") == "10-K" and e.get("fp") == "FY" and e.get("val", 0) > 0]
@@ -52,7 +54,7 @@ def download_financials():
                 results[year]["year"] = entry["fy"]
             break
 
-    # Try each net income tag
+    # Same thing for net income
     for tag in NET_INCOME_TAGS:
         entries = us_gaap.get(tag, {}).get("units", {}).get("USD", [])
         annual = [e for e in entries if e.get("form") == "10-K" and e.get("fp") == "FY"]
@@ -65,7 +67,7 @@ def download_financials():
                 results[year]["net_income"] = entry["val"]
             break
 
-    # Save to file
+    # Write to the cache file so we don't have to hit the API every time
     CACHE_FILE.parent.mkdir(exist_ok=True)
     with open(CACHE_FILE, "w") as f:
         json.dump(results, f, indent=2)
@@ -75,7 +77,7 @@ def download_financials():
 
 
 def get_financials(year=None):
-    """Load financials from file. Download first if file doesn't exist."""
+    """Load financials from the cache file, downloading from SEC first if needed."""
     if not CACHE_FILE.exists():
         download_financials()
 
@@ -85,7 +87,7 @@ def get_financials(year=None):
     if year:
         return data.get(str(year), {})
 
-    # Return most recent year if no year specified
+    # Default to the most recent year if none is specified
     latest = sorted(data.keys())[-1]
     return data[latest]
 
