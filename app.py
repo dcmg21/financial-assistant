@@ -30,14 +30,30 @@ sys.path.insert(0, os.path.join(BASE_DIR, "ml"))
 from dotenv import load_dotenv
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 
+# ── Project imports ───────
+from bedrock_client import summarize, fallback_answer
+from agent import chat as agent_chat
+from inference_regression import predict as reg_predict
+from inference_classification import predict as clf_predict
+
 # ── SageMaker client ───────────────────────────────────────────────────────────
 REGION                   = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
-REGRESSION_ENDPOINT      = "housing-regression-endpoint"
-CLASSIFICATION_ENDPOINT  = "bank-classification-endpoint"
-REGRESSION_FEATURES      = [
+REGRESSION_ENDPOINT      = os.getenv("SAGEMAKER_REGRESSION_ENDPOINT", "housing-regression-endpoint")
+CLASSIFICATION_ENDPOINT  = os.getenv("SAGEMAKER_CLASSIFICATION_ENDPOINT", "bank-classification-endpoint")
+
+REGRESSION_FEATURES = [
     "MedInc", "HouseAge", "AveOccup", "Latitude", "Longitude",
     "Population", "rooms_per_person", "bedrooms_ratio", "income_per_room"
 ]
+
+# Classification features and encoders
+_encoders_path    = os.path.join(BASE_DIR, "ml", "artifacts", "lr_bank_marketing_encoders.pkl")
+_feature_col_path = os.path.join(BASE_DIR, "ml", "artifacts", "lr_bank_marketing_features.pkl")
+CLASSIFICATION_ENCODERS = joblib.load(_encoders_path)
+CLASSIFICATION_FEATURES = joblib.load(_feature_col_path)
+
+# Shared data path — used by Chat (fallback) and Financials tabs
+FIN_DATA_PATH = Path(BASE_DIR) / "data_sources" / "realty_income_financials.json"
 
 sagemaker_runtime = boto3.client(
     "sagemaker-runtime",
@@ -75,20 +91,15 @@ def sagemaker_predict_classification(features: dict) -> dict:
     then sends the numeric array to the endpoint.
     Returns the same dict shape as inference_classification.predict().
     """
-    encoders_path    = os.path.join(BASE_DIR, "ml", "artifacts", "lr_bank_marketing_encoders.pkl")
-    feature_col_path = os.path.join(BASE_DIR, "ml", "artifacts", "lr_bank_marketing_features.pkl")
-    label_encoders   = joblib.load(encoders_path)
-    feature_cols     = joblib.load(feature_col_path)
-
-    # Encode categorical fields using saved LabelEncoders
+    # Encode categorical fields using saved LabelEncoders (loaded once at startup)
     encoded = {}
     for col, val in features.items():
-        if col in label_encoders:
-            encoded[col] = int(label_encoders[col].transform([val])[0])
+        if col in CLASSIFICATION_ENCODERS:
+            encoded[col] = int(CLASSIFICATION_ENCODERS[col].transform([val])[0])
         else:
             encoded[col] = val
 
-    payload = ",".join(str(encoded[f]) for f in feature_cols)
+    payload = ",".join(str(encoded[f]) for f in CLASSIFICATION_FEATURES)
     response = sagemaker_runtime.invoke_endpoint(
         EndpointName=CLASSIFICATION_ENDPOINT,
         ContentType="text/csv",
@@ -248,7 +259,6 @@ with tab_chat:
 
                 # Try Vertex AI first
                 try:
-                    from agent import chat as agent_chat
                     response = agent_chat(prompt, session_id=st.session_state.session_id)
                     if not response or "could not generate" in response.lower():
                         raise ValueError("Empty or default response from Vertex AI")
@@ -256,11 +266,9 @@ with tab_chat:
                     # Vertex AI failed — switch to AWS Bedrock with recent SEC data as context
                     used_fallback = True
                     try:
-                        from bedrock_client import fallback_answer
-                        fin_path = Path(BASE_DIR) / "data_sources" / "realty_income_financials.json"
                         context = ""
-                        if fin_path.exists():
-                            with open(fin_path) as f:
+                        if FIN_DATA_PATH.exists():
+                            with open(FIN_DATA_PATH) as f:
                                 data = json.load(f)
                             recent = sorted(data.keys(), reverse=True)[:2]
                             for yr in recent:
@@ -290,12 +298,10 @@ with tab_chat:
 with tab_fin:
     st.header("📊 Realty Income Financial Dashboard")
 
-    fin_path = Path(BASE_DIR) / "data_sources" / "realty_income_financials.json"
-
-    if not fin_path.exists():
+    if not FIN_DATA_PATH.exists():
         st.warning("Financial data not found. Run `data_sources/sec_edgar.py` to fetch it.")
     else:
-        with open(fin_path) as f:
+        with open(FIN_DATA_PATH) as f:
             fin_data = json.load(f)
 
         # Convert the JSON dict to a DataFrame for display
@@ -366,7 +372,6 @@ with tab_fin:
         if st.button("Generate financial summary", key="gen_summary"):
             with st.spinner("Generating summary via AWS Bedrock…"):
                 try:
-                    from bedrock_client import summarize
                     recent_rows = df.head(5)
                     text_block = "\n".join(
                         f"{int(r['Year'])}: Revenue=${r['Revenue ($M)']:,.0f}M, Net Income=${r['Net Income ($M)']:,.0f}M"
@@ -439,7 +444,6 @@ with tab_housing:
         # If SageMaker failed, run the prediction locally using the pkl files
         if result is None:
             try:
-                from inference_regression import predict as reg_predict
                 result = reg_predict(features)
                 result["source"] = "Local Model"
             except Exception as e:
@@ -523,7 +527,6 @@ with tab_bank:
         # If SageMaker failed, run the prediction locally using the pkl files
         if result is None:
             try:
-                from inference_classification import predict as clf_predict
                 result = clf_predict(features)
                 result["source"] = "Local Model"
             except Exception as e:
